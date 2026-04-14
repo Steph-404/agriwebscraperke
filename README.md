@@ -30,28 +30,60 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Basic Usage
+### Step 1: Discover Download URLs (Optional)
 
-Run the scraper with the default configuration:
+To automatically discover all download URLs from the KALRO repository:
+
+```bash
+python kalro_discover.py
+```
+
+This will:
+- Scan the Crops and Livestock communities
+- Discover all collections within those communities
+- Find all items in each collection
+- Extract bitstream download URLs for each item
+- Save all URLs to `discovered_urls.txt`
+
+You can customize which communities to scan by modifying the `COMMUNITIES` dictionary in `kalro_discover.py`.
+
+### Step 2: Download Files
+
+Run the scraper to download files:
 
 ```bash
 python kalroscraper.py
 ```
 
-### Customizing URLs
+The scraper will:
+- Check for `discovered_urls.txt` and use those URLs if available
+- Fall back to manually specified URLs if no discovery file exists
+- Download files to `downloads/kalro_research_files/`
+- Track downloaded URLs to avoid duplicates
 
-Edit the `target_urls` list in `kalroscraper.py` to add the URLs you want to download:
+### Basic Usage (Manual URLs)
+
+If you prefer to specify URLs manually, edit the `target_urls` list in `kalroscraper.py`:
 
 ```python
 target_urls = [
     "https://kalroerepository.kalro.org/bitstreams/45eff860-ea9e-49ca-a145-eca1389b1a5b/download",
     "https://kalroerepository.kalro.org/bitstreams/another-uuid-here/download",
-    # Add more URLs here
 ]
 ```
 
 ### How It Works
 
+**URL Discovery (kalro_discover.py):**
+1. Connects to the KALRO DSpace REST API
+2. Scans specified communities (Crops, Livestock by default)
+3. Retrieves all collections within each community
+4. Discovers all items in each collection using pagination
+5. Extracts bitstream (file) information from each item
+6. Constructs download URLs for all files
+7. Saves URLs to `discovered_urls.txt`
+
+**File Download (kalroscraper.py):**
 1. The scraper creates a `downloads/` directory for all download-related content
 2. It creates `downloads/kalro_research_files/` for the actual downloaded files
 3. It maintains `downloads/downloaded_urls_index.txt` to track downloaded URLs
@@ -66,7 +98,8 @@ target_urls = [
 
 ```
 agriwebscraperke/
-├── kalroscraper.py              # Main scraper script
+├── kalroscraper.py              # Main downloader script
+├── kalro_discover.py            # URL discovery module (uses DSpace REST API)
 ├── requirements.txt             # Python dependencies
 ├── README.md                   # This file
 ├── LICENSE                     # MIT License

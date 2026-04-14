@@ -35,6 +35,9 @@ ENV/
 # Downloaded files
 downloads/
 
+# Discovered URLs
+discovered_urls.txt
+
 # OS
 .DS_Store
 Thumbs.db

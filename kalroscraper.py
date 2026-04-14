@@ -2,6 +2,7 @@ import os
 import requests
 import re
 import mimetypes
+from typing import List
 
 # --- Configuration ---
 DOWNLOAD_DIR = 'downloads/kalro_research_files'
@@ -19,6 +20,17 @@ def load_indexed_urls():
     with open(INDEX_FILE, 'r') as f:
         # Using a set makes looking up URLs incredibly fast (O(1) time complexity)
         return set(line.strip() for line in f if line.strip())
+
+def load_discovered_urls(filename: str = 'discovered_urls.txt') -> List[str]:
+    """Load URLs from a file (e.g., from the discovery module)."""
+    if not os.path.exists(filename):
+        print(f"[INFO] No discovered URLs file found at {filename}")
+        return []
+    
+    with open(filename, 'r') as f:
+        urls = [line.strip() for line in f if line.strip()]
+    print(f"[INFO] Loaded {len(urls)} URLs from {filename}")
+    return urls
 
 def mark_url_as_downloaded(url, indexed_urls):
     """Add the URL to our local set and append it to the index text file."""
@@ -91,12 +103,21 @@ if __name__ == "__main__":
     # 2. Load memory of what we've already done
     indexed_urls = load_indexed_urls()
     
-    # 3. List of URLs to process (This could come from your web scraper or API results)
-    target_urls =[
-        "https://kalroerepository.kalro.org/bitstreams/45eff860-ea9e-49ca-a145-eca1389b1a5b/download",
-        # You can add more URLs here, e.g.:
-        # "https://kalroerepository.kalro.org/bitstreams/another-uuid-here/download"
-    ]
+    # 3. Load URLs - either from discovered_urls.txt or use manual list
+    discovered_urls = load_discovered_urls()
+    
+    if discovered_urls:
+        # Use URLs discovered by the discovery module
+        target_urls = discovered_urls
+        print(f"[INFO] Using {len(target_urls)} URLs from discovery module")
+    else:
+        # Fallback to manual list
+        target_urls = [
+            "https://kalroerepository.kalro.org/bitstreams/45eff860-ea9e-49ca-a145-eca1389b1a5b/download",
+            # You can add more URLs here, e.g.:
+            # "https://kalroerepository.kalro.org/bitstreams/another-uuid-here/download"
+        ]
+        print(f"[INFO] Using {len(target_urls)} manually specified URLs")
     
     # 4. Loop through and download
     for target in target_urls:
