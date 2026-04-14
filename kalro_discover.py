@@ -7,6 +7,7 @@ for research files from the KALRO repository.
 
 import requests
 import json
+import os
 from typing import List, Dict, Set
 from urllib.parse import quote
 
@@ -20,6 +21,39 @@ COMMUNITIES = {
     "crops": "17bea01f-72da-4160-a98a-a57196e515f3",
     "livestock": "9a211b88-8884-4547-90dc-9e4dd7f696f5"
 }
+
+# Base download directory (same as kalroscraper.py)
+DOWNLOAD_DIR = 'downloads/kalro_research_files'
+
+
+def sanitize_folder_name(name: str) -> str:
+    """Sanitize folder name to remove invalid characters."""
+    # Remove or replace characters that are invalid in folder names
+    invalid_chars = '<>:"/\\|?*'
+    for char in invalid_chars:
+        name = name.replace(char, '_')
+    return name.strip()
+
+
+def create_collection_folder(community_name: str, collection_name: str) -> str:
+    """Create hierarchical folder structure for a collection."""
+    # Sanitize names
+    safe_community = sanitize_folder_name(community_name)
+    safe_collection = sanitize_folder_name(collection_name)
+    
+    # Create path: downloads/kalro_research_files/community/collection
+    collection_path = os.path.join(DOWNLOAD_DIR, safe_community, safe_collection)
+    
+    # Create directories if they don't exist
+    os.makedirs(collection_path, exist_ok=True)
+    
+    return collection_path
+
+
+def append_url_to_file(url: str, file_path: str):
+    """Append a single URL to the specified file."""
+    with open(file_path, 'a', encoding='utf-8') as f:
+        f.write(url + '\n')
 
 
 def get_collections(community_uuid: str) -> List[Dict]:
@@ -108,16 +142,43 @@ def get_items_from_collection(collection_uuid: str, page: int = 0, size: int = 1
         response.raise_for_status()
         data = response.json()
         
-        if "_embedded" in data and "searchResult" in data["_embedded"]:
-            objects = data["_embedded"]["searchResult"]["_embedded"]["objects"]
-            for obj in objects:
-                item = obj["_embedded"]["indexableObject"]
-                items.append({
-                    "uuid": item["uuid"],
-                    "name": item["name"],
-                    "handle": item.get("handle", ""),
-                    "metadata": item.get("metadata", {})
-                })
+        # Debug: print the response structure if there's an issue
+        if "_embedded" not in data:
+            print(f"[DEBUG] No _embedded in response for collection {collection_uuid}")
+            print(f"[DEBUG] Response keys: {data.keys()}")
+            return items
+        
+        if "searchResult" not in data["_embedded"]:
+            print(f"[DEBUG] No searchResult in _embedded for collection {collection_uuid}")
+            return items
+        
+        search_result = data["_embedded"]["searchResult"]
+        
+        if "_embedded" not in search_result:
+            print(f"[DEBUG] No _embedded in searchResult for collection {collection_uuid}")
+            return items
+        
+        if "objects" not in search_result["_embedded"]:
+            print(f"[DEBUG] No objects in searchResult._embedded for collection {collection_uuid}")
+            return items
+        
+        objects = search_result["_embedded"]["objects"]
+        for obj in objects:
+            if "_embedded" not in obj:
+                print(f"[DEBUG] No _embedded in object for collection {collection_uuid}")
+                continue
+            
+            if "indexableObject" not in obj["_embedded"]:
+                print(f"[DEBUG] No indexableObject in object._embedded for collection {collection_uuid}")
+                continue
+            
+            item = obj["_embedded"]["indexableObject"]
+            items.append({
+                "uuid": item["uuid"],
+                "name": item["name"],
+                "handle": item.get("handle", ""),
+                "metadata": item.get("metadata", {})
+            })
         
         # Check if there are more pages
         if "page" in data:
@@ -133,6 +194,9 @@ def get_items_from_collection(collection_uuid: str, page: int = 0, size: int = 1
         
     except requests.exceptions.RequestException as e:
         print(f"[ERROR] Failed to get items from collection {collection_uuid}: {e}")
+        return []
+    except KeyError as e:
+        print(f"[ERROR] KeyError in get_items_from_collection for {collection_uuid}: {e}")
         return []
 
 
@@ -192,23 +256,43 @@ def discover_download_urls(communities: Dict[str, str] = None) -> Set[str]:
     if communities is None:
         communities = COMMUNITIES
     
+    # Create base download directory
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    
     all_urls = set()
     
     for community_name, community_uuid in communities.items():
-        print(f"\n[DISCOVER] Processing community: {community_name}")
+        print(f"\n{'='*60}")
+        print(f"[DISCOVER] Processing community: {community_name}")
         print(f"[DISCOVER] Community UUID: {community_uuid}")
+        print(f"{'='*60}")
         
         # Get collections in this community
         collections = get_collections(community_uuid)
-        print(f"[DISCOVER] Found {len(collections)} collections")
+        print(f"[DISCOVER] Found {len(collections)} collections in this community\n")
         
-        for collection in collections:
-            print(f"\n[DISCOVER] Processing collection: {collection['name']}")
+        for idx, collection in enumerate(collections, 1):
+            print(f"\n{'='*60}")
+            print(f"[DISCOVER] Collection {idx}/{len(collections)}: {collection['name']}")
             print(f"[DISCOVER] Collection UUID: {collection['uuid']}")
+            print(f"{'='*60}")
+            
+            # Create hierarchical folder for this collection
+            collection_path = create_collection_folder(community_name, collection['name'])
+            print(f"[DISCOVER] Created folder: {collection_path}")
+            
+            # Create collection-specific discovered URLs file
+            discovered_urls_file = os.path.join(collection_path, 'discovered_urls.txt')
+            
+            # Load existing URLs for this collection to avoid duplicates
+            existing_urls = load_urls_from_file(discovered_urls_file)
+            print(f"[DISCOVER] Found {len(existing_urls)} existing URLs in this collection")
             
             # Get items from this collection
             items = get_items_from_collection(collection['uuid'])
-            print(f"[DISCOVER] Found {len(items)} items")
+            print(f"[DISCOVER] Found {len(items)} items in this collection")
+            
+            urls_found_this_run = 0
             
             for item in items:
                 print(f"[DISCOVER] Processing item: {item['name']}")
@@ -218,20 +302,42 @@ def discover_download_urls(communities: Dict[str, str] = None) -> Set[str]:
                 
                 for bs in bitstreams:
                     download_url = bs['download_url']
-                    all_urls.add(download_url)
-                    print(f"[DISCOVER] Found file: {bs['name']} ({bs['size_bytes']} bytes)")
-                    print(f"[DISCOVER] Download URL: {download_url}")
+                    
+                    # Only add and save if this is a new URL
+                    if download_url not in existing_urls:
+                        existing_urls.add(download_url)
+                        all_urls.add(download_url)
+                        append_url_to_file(download_url, discovered_urls_file)
+                        urls_found_this_run += 1
+                        print(f"[DISCOVER] Found NEW file: {bs['name']} ({bs['size_bytes']} bytes)")
+                        print(f"[DISCOVER] Download URL: {download_url}")
+                    else:
+                        print(f"[DISCOVER] Skipping duplicate: {bs['name']}")
+            
+            # Report progress for this collection
+            print(f"\n[DISCOVER] Collection Summary:")
+            print(f"[DISCOVER]   Total items: {len(items)}")
+            print(f"[DISCOVER]   Total URLs in file: {len(existing_urls)}")
+            print(f"[DISCOVER]   New URLs this run: {urls_found_this_run}")
+            print(f"[DISCOVER]   URLs saved to: {discovered_urls_file}")
+            
+            # Check if collection is complete
+            if len(existing_urls) >= len(items):
+                print(f"[DISCOVER] Collection complete ({len(existing_urls)} URLs for {len(items)} items)")
+            else:
+                print(f"[DISCOVER] Collection incomplete ({len(existing_urls)} URLs for {len(items)} items)")
+            
+            # Pause after each collection
+            if idx < len(collections):
+                print(f"\n[PAUSE] Collection {idx}/{len(collections)} complete.")
+                print(f"[PAUSE] Press Enter to continue to next collection, or Ctrl+C to stop...")
+                input()
     
-    print(f"\n[DISCOVER] Total unique download URLs found: {len(all_urls)}")
+    print(f"\n{'='*60}")
+    print(f"[DISCOVER] Discovery complete!")
+    print(f"[DISCOVER] Total unique download URLs across all collections: {len(all_urls)}")
+    print(f"{'='*60}")
     return all_urls
-
-
-def save_urls_to_file(urls: Set[str], filename: str = "discovered_urls.txt"):
-    """Save discovered URLs to a file."""
-    with open(filename, 'w') as f:
-        for url in sorted(urls):
-            f.write(url + '\n')
-    print(f"[DISCOVER] Saved {len(urls)} URLs to {filename}")
 
 
 def load_urls_from_file(filename: str = "discovered_urls.txt") -> Set[str]:
@@ -245,9 +351,7 @@ def load_urls_from_file(filename: str = "discovered_urls.txt") -> Set[str]:
 
 if __name__ == "__main__":
     # Discover URLs from Crops and Livestock communities
+    # URLs are written to collection-specific files incrementally during discovery
     urls = discover_download_urls()
     
-    # Save to file
-    save_urls_to_file(urls)
-    
-    print("\n[DISCOVER] Discovery complete!")
+    print("\n[DISCOVER] All discovery complete!")

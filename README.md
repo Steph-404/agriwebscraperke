@@ -39,11 +39,27 @@ python kalro_discover.py
 ```
 
 This will:
+- Create hierarchical folder structure: `downloads/kalro_research_files/{community}/{collection}/`
 - Scan the Crops and Livestock communities
 - Discover all collections within those communities
 - Find all items in each collection
 - Extract bitstream download URLs for each item
-- Save all URLs to `discovered_urls.txt`
+- Save URLs to collection-specific `discovered_urls.txt` files
+- Pause after each collection for review (press Enter to continue)
+- Track progress: items found vs URLs saved
+
+**Folder Structure Example:**
+```
+downloads/kalro_research_files/
+├── crops/
+│   ├── Pests and Diseases/
+│   │   └── discovered_urls.txt
+│   └── Cereals/
+│       └── discovered_urls.txt
+└── livestock/
+    └── Dairy/
+        └── discovered_urls.txt
+```
 
 You can customize which communities to scan by modifying the `COMMUNITIES` dictionary in `kalro_discover.py`.
 
@@ -77,14 +93,18 @@ target_urls = [
 **URL Discovery (kalro_discover.py):**
 1. Connects to the KALRO DSpace REST API
 2. Scans specified communities (Crops, Livestock by default)
-3. Retrieves all collections within each community
-4. Discovers all items in each collection using pagination
-5. Extracts bitstream (file) information from each item
-6. Constructs download URLs for all files
-7. Saves URLs to `discovered_urls.txt`
+3. Creates hierarchical folder structure: `downloads/kalro_research_files/{community}/{collection}/`
+4. Retrieves all collections within each community
+5. Processes one collection at a time with pause for review
+6. Discovers all items in each collection using pagination
+7. Extracts bitstream (file) information from each item
+8. Constructs download URLs for all files
+9. Saves URLs to collection-specific `discovered_urls.txt` files incrementally
+10. Tracks progress: items found vs URLs saved per collection
+11. Marks collection as complete when URLs count matches items count
 
 **File Download (kalroscraper.py):**
-1. The scraper creates a `downloads/` directory for all download-related content
+1. The scraper scans the hierarchical folder structure for all `discovered_urls.txt` files
 2. It creates `downloads/kalro_research_files/` for the actual downloaded files
 3. It maintains `downloads/downloaded_urls_index.txt` to track downloaded URLs
 4. For each URL:
@@ -106,7 +126,14 @@ agriwebscraperke/
 ├── .gitignore                  # Git ignore rules
 └── downloads/                  # Downloaded files (created on first run)
     └── kalro_research_files/   # Downloaded research files
-    └── downloaded_urls_index.txt # Index of downloaded URLs
+        ├── crops/               # Crops community folder
+        │   ├── Pests and Diseases/
+        │   │   ├── discovered_urls.txt  # URLs for this collection
+        │   │   └── [downloaded files]
+        │   └── [other collections...]
+        ├── livestock/           # Livestock community folder
+        │   └── [collections...]
+        └── downloaded_urls_index.txt # Index of downloaded URLs
 ```
 
 ## Dependencies

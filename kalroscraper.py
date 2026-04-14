@@ -22,15 +22,39 @@ def load_indexed_urls():
         return set(line.strip() for line in f if line.strip())
 
 def load_discovered_urls(filename: str = 'discovered_urls.txt') -> List[str]:
-    """Load URLs from a file (e.g., from the discovery module)."""
-    if not os.path.exists(filename):
-        print(f"[INFO] No discovered URLs file found at {filename}")
+    """Load URLs from a file or scan hierarchical folder structure."""
+    # If a specific file is provided and exists, load from it
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
+            urls = [line.strip() for line in f if line.strip()]
+        print(f"[INFO] Loaded {len(urls)} URLs from {filename}")
+        return urls
+    
+    # Otherwise, scan the hierarchical folder structure for all discovered_urls.txt files
+    if not os.path.exists(DOWNLOAD_DIR):
+        print(f"[INFO] No download directory found at {DOWNLOAD_DIR}")
         return []
     
-    with open(filename, 'r') as f:
-        urls = [line.strip() for line in f if line.strip()]
-    print(f"[INFO] Loaded {len(urls)} URLs from {filename}")
-    return urls
+    all_urls = []
+    # Walk through the directory tree
+    for root, dirs, files in os.walk(DOWNLOAD_DIR):
+        if 'discovered_urls.txt' in files:
+            file_path = os.path.join(root, 'discovered_urls.txt')
+            with open(file_path, 'r') as f:
+                urls = [line.strip() for line in f if line.strip()]
+                all_urls.extend(urls)
+            print(f"[INFO] Loaded {len(urls)} URLs from {file_path}")
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_urls = []
+    for url in all_urls:
+        if url not in seen:
+            seen.add(url)
+            unique_urls.append(url)
+    
+    print(f"[INFO] Total unique URLs loaded from all collection folders: {len(unique_urls)}")
+    return unique_urls
 
 def mark_url_as_downloaded(url, indexed_urls):
     """Add the URL to our local set and append it to the index text file."""
