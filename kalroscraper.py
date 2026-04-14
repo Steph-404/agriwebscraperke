@@ -4,8 +4,8 @@ import re
 import mimetypes
 
 # --- Configuration ---
-DOWNLOAD_DIR = 'kalro_research_files'
-INDEX_FILE = 'downloaded_urls_index.txt'
+DOWNLOAD_DIR = 'downloads/kalro_research_files'
+INDEX_FILE = 'downloads/downloaded_urls_index.txt'
 
 def setup_environment():
     """Ensure the download directory and index file exist."""

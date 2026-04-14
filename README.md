@@ -52,9 +52,10 @@ target_urls = [
 
 ### How It Works
 
-1. The scraper creates a `kalro_research_files/` directory for downloads
-2. It maintains a `downloaded_urls_index.txt` file to track downloaded URLs
-3. For each URL:
+1. The scraper creates a `downloads/` directory for all download-related content
+2. It creates `downloads/kalro_research_files/` for the actual downloaded files
+3. It maintains `downloads/downloaded_urls_index.txt` to track downloaded URLs
+4. For each URL:
    - Checks if already downloaded (skips if yes)
    - Downloads the file using streaming (1MB chunks)
    - Extracts the filename from headers or constructs from UUID
@@ -70,7 +71,9 @@ agriwebscraperke/
 ├── README.md                   # This file
 ├── LICENSE                     # MIT License
 ├── .gitignore                  # Git ignore rules
-└── kalro_research_files/       # Downloaded files (created on first run)
+└── downloads/                  # Downloaded files (created on first run)
+    └── kalro_research_files/   # Downloaded research files
+    └── downloaded_urls_index.txt # Index of downloaded URLs
 ```
 
 ## Dependencies
@@ -81,8 +84,8 @@ agriwebscraperke/
 
 You can modify these constants in `kalroscraper.py`:
 
-- `DOWNLOAD_DIR`: Directory for downloaded files (default: `kalro_research_files`)
-- `INDEX_FILE`: File tracking downloaded URLs (default: `downloaded_urls_index.txt`)
+- `DOWNLOAD_DIR`: Directory for downloaded files (default: `downloads/kalro_research_files`)
+- `INDEX_FILE`: File tracking downloaded URLs (default: `downloads/downloaded_urls_index.txt`)
 - `timeout`: Request timeout in seconds (default: 30)
 - `chunk_size`: Download chunk size in bytes (default: 1048576 / 1MB)
 
