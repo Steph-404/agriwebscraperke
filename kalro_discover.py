@@ -23,31 +23,19 @@ COMMUNITIES = {
 
 
 def get_collections(community_uuid: str) -> List[Dict]:
-    """Get all collections within a community."""
-    url = f"{API_BASE}/communities/{community_uuid}/subcoms-cols"
+    """Get all collections within a community using the discover API."""
+    collections = []
+    
     try:
-        response = requests.get(url, timeout=30)
+        # Use the discover API to search for collections within the community scope
+        # This is the correct way to get collections in DSpace 7 REST API
+        search_url = f"{DISCOVER_API}?query=*&dsoType=COLLECTION&scope={community_uuid}"
+        response = requests.get(search_url, timeout=30)
         response.raise_for_status()
         data = response.json()
         
-        # The response is HTML for the page, we need to parse it differently
-        # Let's try a different approach - get the community directly
-        community_url = f"{API_BASE}/communities/{community_uuid}"
-        comm_response = requests.get(community_url, timeout=30)
-        comm_response.raise_for_status()
-        comm_data = comm_response.json()
-        
-        # Get sub-communities and collections from the _links
-        collections = []
-        
-        # Try to get collections via the discover API with the community as scope
-        search_url = f"{DISCOVER_API}?query=*&dsoType=COLLECTION&scope={community_uuid}"
-        search_response = requests.get(search_url, timeout=30)
-        search_response.raise_for_status()
-        search_data = search_response.json()
-        
-        if "_embedded" in search_data and "searchResult" in search_data["_embedded"]:
-            objects = search_data["_embedded"]["searchResult"]["_embedded"]["objects"]
+        if "_embedded" in data and "searchResult" in data["_embedded"]:
+            objects = data["_embedded"]["searchResult"]["_embedded"]["objects"]
             for obj in objects:
                 collection = obj["_embedded"]["indexableObject"]
                 collections.append({
@@ -56,10 +44,57 @@ def get_collections(community_uuid: str) -> List[Dict]:
                     "handle": collection.get("handle", "")
                 })
         
+        # Check if there are more pages
+        if "page" in data:
+            total_pages = data["page"].get("totalPages", 1)
+            current_page = data["page"].get("number", 0)
+            
+            if current_page < total_pages - 1:
+                # Recursively get collections from next page
+                more_collections = get_collections_paginated(community_uuid, current_page + 1)
+                collections.extend(more_collections)
+        
         return collections
         
     except requests.exceptions.RequestException as e:
         print(f"[ERROR] Failed to get collections for community {community_uuid}: {e}")
+        return []
+
+
+def get_collections_paginated(community_uuid: str, page: int = 0, size: int = 100) -> List[Dict]:
+    """Helper function to get collections from a specific page."""
+    collections = []
+    
+    try:
+        search_url = f"{DISCOVER_API}?query=*&dsoType=COLLECTION&scope={community_uuid}&page={page}&size={size}"
+        response = requests.get(search_url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        
+        if "_embedded" in data and "searchResult" in data["_embedded"]:
+            objects = data["_embedded"]["searchResult"]["_embedded"]["objects"]
+            for obj in objects:
+                collection = obj["_embedded"]["indexableObject"]
+                collections.append({
+                    "uuid": collection["uuid"],
+                    "name": collection["name"],
+                    "handle": collection.get("handle", "")
+                })
+        
+        # Check if there are more pages
+        if "page" in data:
+            total_pages = data["page"].get("totalPages", 1)
+            current_page = data["page"].get("number", 0)
+            
+            if current_page < total_pages - 1:
+                # Recursively get collections from next page
+                more_collections = get_collections_paginated(community_uuid, current_page + 1, size)
+                collections.extend(more_collections)
+        
+        return collections
+        
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Failed to get collections page {page} for community {community_uuid}: {e}")
         return []
 
 
