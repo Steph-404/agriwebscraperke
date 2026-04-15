@@ -286,11 +286,19 @@ def discover_download_urls(communities: Dict[str, str] = None) -> Set[str]:
             
             # Load existing URLs for this collection to avoid duplicates
             existing_urls = load_urls_from_file(discovered_urls_file)
-            print(f"[DISCOVER] Found {len(existing_urls)} existing URLs in this collection")
             
             # Get items from this collection
             items = get_items_from_collection(collection['uuid'])
             print(f"[DISCOVER] Found {len(items)} items in this collection")
+            print(f"[DISCOVER] Found {len(existing_urls)} existing URLs in this collection")
+            
+            # Check if collection is already complete
+            if len(existing_urls) >= len(items):
+                print(f"[DISCOVER] ✓ Collection already complete ({len(existing_urls)} URLs for {len(items)} items)")
+                print(f"[DISCOVER] Skipping this collection...")
+                # Add existing URLs to all_urls
+                all_urls.update(existing_urls)
+                continue
             
             urls_found_this_run = 0
             
@@ -326,12 +334,6 @@ def discover_download_urls(communities: Dict[str, str] = None) -> Set[str]:
                 print(f"[DISCOVER] Collection complete ({len(existing_urls)} URLs for {len(items)} items)")
             else:
                 print(f"[DISCOVER] Collection incomplete ({len(existing_urls)} URLs for {len(items)} items)")
-            
-            # Pause after each collection
-            if idx < len(collections):
-                print(f"\n[PAUSE] Collection {idx}/{len(collections)} complete.")
-                print(f"[PAUSE] Press Enter to continue to next collection, or Ctrl+C to stop...")
-                input()
     
     print(f"\n{'='*60}")
     print(f"[DISCOVER] Discovery complete!")

@@ -44,9 +44,10 @@ This will:
 - Discover all collections within those communities
 - Find all items in each collection
 - Extract bitstream download URLs for each item
-- Save URLs to collection-specific `discovered_urls.txt` files
-- Pause after each collection for review (press Enter to continue)
+- Save URLs to collection-specific `discovered_urls.txt` files incrementally
 - Track progress: items found vs URLs saved
+- Skip collections that are already complete
+- Continue automatically through all communities and collections
 
 **Folder Structure Example:**
 ```
@@ -95,13 +96,14 @@ target_urls = [
 2. Scans specified communities (Crops, Livestock by default)
 3. Creates hierarchical folder structure: `downloads/kalro_research_files/{community}/{collection}/`
 4. Retrieves all collections within each community
-5. Processes one collection at a time with pause for review
+5. Checks if collection is already complete (skips if yes)
 6. Discovers all items in each collection using pagination
 7. Extracts bitstream (file) information from each item
 8. Constructs download URLs for all files
 9. Saves URLs to collection-specific `discovered_urls.txt` files incrementally
 10. Tracks progress: items found vs URLs saved per collection
-11. Marks collection as complete when URLs count matches items count
+11. Continues automatically through all communities and collections
+12. Marks collection as complete when URLs count matches items count
 
 **File Download (kalroscraper.py):**
 1. The scraper scans the hierarchical folder structure for all `discovered_urls.txt` files
