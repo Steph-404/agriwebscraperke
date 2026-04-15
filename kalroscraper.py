@@ -7,6 +7,7 @@ from typing import List, Tuple
 # --- Configuration ---
 DOWNLOAD_DIR = 'downloads/kalro_research_files'
 INDEX_FILE = 'downloads/downloaded_urls_index.txt'
+FAILED_DOWNLOADS_FILE = 'downloads/failed_downloads.txt'
 
 def setup_environment():
     """Ensure the download directory and index file exist."""
@@ -14,6 +15,8 @@ def setup_environment():
         os.makedirs(DOWNLOAD_DIR)
     if not os.path.exists(INDEX_FILE):
         open(INDEX_FILE, 'w').close() # Create an empty file if it doesn't exist
+    if not os.path.exists(FAILED_DOWNLOADS_FILE):
+        open(FAILED_DOWNLOADS_FILE, 'w').close() # Create an empty file if it doesn't exist
 
 def load_indexed_urls():
     """Read the index file and return a set of already downloaded URLs."""
@@ -77,6 +80,11 @@ def mark_url_as_downloaded(url, indexed_urls):
     with open(INDEX_FILE, 'a') as f:
         f.write(url + '\n')
 
+def mark_url_as_failed(url):
+    """Log a failed download URL for later retry."""
+    with open(FAILED_DOWNLOADS_FILE, 'a') as f:
+        f.write(url + '\n')
+
 def get_filename_from_response(response, url):
     """Attempt to get the true filename from the server headers."""
     # 1. Check Content-Disposition header (Usually contains: attachment; filename="doc.pdf")
@@ -122,10 +130,6 @@ def download_research_file(url, indexed_urls, folder_path=None):
     try:
         # stream=True prevents loading massive files into your computer's RAM all at once
         with requests.get(url, stream=True, timeout=30) as response:
-            # Log response details for debugging
-            print(f"[DEBUG] Response status: {response.status_code}")
-            print(f"[DEBUG] Response headers: {dict(response.headers)}")
-            
             # Raise an error if the URL is broken (e.g., 404 Not Found)
             response.raise_for_status()
             
@@ -147,18 +151,11 @@ def download_research_file(url, indexed_urls, folder_path=None):
             # Success! Now record this URL so we never download it again
             mark_url_as_downloaded(url, indexed_urls)
 
-    except requests.exceptions.HTTPError as e:
-        # Log detailed error information
-        print(f"[ERROR] HTTP Error for {url}")
-        print(f"[ERROR] Status code: {e.response.status_code}")
-        print(f"[ERROR] Response headers: {dict(e.response.headers)}")
-        try:
-            print(f"[ERROR] Response body (first 500 chars): {e.response.text[:500]}")
-        except:
-            print(f"[ERROR] Could not read response body")
-        print(f"[ERROR] Full error: {e}")
     except requests.exceptions.RequestException as e:
+        # Log error and continue with next file
         print(f"[ERROR] Failed to download {url}. Error: {e}")
+        print(f"[INFO] Logging failed URL for later retry...")
+        mark_url_as_failed(url)
 
 # --- Main Execution ---
 if __name__ == "__main__":
