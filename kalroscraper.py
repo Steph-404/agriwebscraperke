@@ -49,12 +49,14 @@ def load_discovered_urls(filename: str = 'discovered_urls.txt') -> List[Tuple[st
                 urls = [line.strip() for line in f if line.strip()]
                 # Use the directory containing discovered_urls.txt as the download folder
                 for url in urls:
-                    # Transform old /download URLs to /content endpoints
-                    if url.endswith('/download'):
-                        url = url.replace('/download', '/content')
-                        # Also ensure it uses the API base if it doesn't already
-                        if '/server/api/core/bitstreams/' not in url:
-                            url = url.replace('/bitstreams/', '/server/api/core/bitstreams/')
+                    # Convert API /content endpoints back to web /download endpoints
+                    # The API endpoint requires authentication, but web endpoint works without it
+                    if '/server/api/core/bitstreams/' in url and '/content' in url:
+                        # Extract UUID and convert to web download URL
+                        parts = url.split('/')
+                        if len(parts) >= 2:
+                            uuid_part = parts[-2]  # Get UUID from /content URL
+                            url = f"https://kalroerepository.kalro.org/bitstreams/{uuid_part}/download"
                     all_urls_with_paths.append((url, root))
             print(f"[INFO] Loaded {len(urls)} URLs from {file_path}")
     
