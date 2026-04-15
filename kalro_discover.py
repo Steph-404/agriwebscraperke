@@ -86,12 +86,16 @@ def get_collections(community_uuid: str) -> List[Dict]:
         if "_embedded" in data and "searchResult" in data["_embedded"]:
             objects = data["_embedded"]["searchResult"]["_embedded"]["objects"]
             for obj in objects:
-                collection = obj["_embedded"]["indexableObject"]
-                collections.append({
-                    "uuid": collection["uuid"],
-                    "name": collection["name"],
-                    "handle": collection.get("handle", "")
-                })
+                # Check if _embedded exists in the object
+                if "_embedded" in obj and "indexableObject" in obj["_embedded"]:
+                    collection = obj["_embedded"]["indexableObject"]
+                    collections.append({
+                        "uuid": collection["uuid"],
+                        "name": collection["name"],
+                        "handle": collection.get("handle", "")
+                    })
+                else:
+                    print(f"[DEBUG] No _embedded.indexableObject in object for community {community_uuid}")
         
         # Check if there are more pages
         if "page" in data:
@@ -123,12 +127,16 @@ def get_collections_paginated(community_uuid: str, page: int = 0, size: int = 10
         if "_embedded" in data and "searchResult" in data["_embedded"]:
             objects = data["_embedded"]["searchResult"]["_embedded"]["objects"]
             for obj in objects:
-                collection = obj["_embedded"]["indexableObject"]
-                collections.append({
-                    "uuid": collection["uuid"],
-                    "name": collection["name"],
-                    "handle": collection.get("handle", "")
-                })
+                # Check if _embedded exists in the object
+                if "_embedded" in obj and "indexableObject" in obj["_embedded"]:
+                    collection = obj["_embedded"]["indexableObject"]
+                    collections.append({
+                        "uuid": collection["uuid"],
+                        "name": collection["name"],
+                        "handle": collection.get("handle", "")
+                    })
+                else:
+                    print(f"[DEBUG] No _embedded.indexableObject in object for community {community_uuid} page {page}")
         
         # Check if there are more pages
         if "page" in data:
