@@ -138,6 +138,14 @@ def download_research_file(url, indexed_urls, folder_path=None):
             
             # Remove any unsafe characters from the filename just in case
             filename = "".join(c for c in filename if c.isalnum() or c in " ._-")
+            
+            # Truncate filename if it's too long (Windows has a 260 character path limit)
+            # Keep the extension and truncate the base name
+            max_length = 200  # Leave room for path
+            if len(filename) > max_length:
+                name, ext = os.path.splitext(filename)
+                filename = name[:max_length - len(ext)] + ext
+            
             filepath = os.path.join(target_folder, filename)
             
             # Write the file in chunks
@@ -151,6 +159,11 @@ def download_research_file(url, indexed_urls, folder_path=None):
             # Success! Now record this URL so we never download it again
             mark_url_as_downloaded(url, indexed_urls)
 
+    except FileNotFoundError as e:
+        # Handle file system errors (e.g., filename too long)
+        print(f"[ERROR] File system error for {url}. Error: {e}")
+        print(f"[INFO] Logging failed URL for later retry...")
+        mark_url_as_failed(url)
     except requests.exceptions.RequestException as e:
         # Log error and continue with next file
         print(f"[ERROR] Failed to download {url}. Error: {e}")
