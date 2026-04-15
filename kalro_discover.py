@@ -245,9 +245,13 @@ def get_bitstreams_from_item(item_uuid: str) -> List[Dict]:
                     
                     if "_embedded" in bitstreams_data and "bitstreams" in bitstreams_data["_embedded"]:
                         for bs in bitstreams_data["_embedded"]["bitstreams"]:
-                            # Construct the download URL
-                            bs_uuid = bs["uuid"]
-                            download_url = f"{BASE_URL}/bitstreams/{bs_uuid}/download"
+                            # Use the content link from the bitstream _links for the correct download URL
+                            if "_links" in bs and "content" in bs["_links"]:
+                                download_url = bs["_links"]["content"]["href"]
+                            else:
+                                # Fallback to constructing the URL
+                                bs_uuid = bs["uuid"]
+                                download_url = f"{API_BASE}/bitstreams/{bs_uuid}/content"
                             
                             bitstreams.append({
                                 "uuid": bs["uuid"],
