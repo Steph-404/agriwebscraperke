@@ -16,10 +16,25 @@ BASE_URL = "https://kalroerepository.kalro.org"
 API_BASE = f"{BASE_URL}/server/api/core"
 DISCOVER_API = f"{BASE_URL}/server/api/discover/search/objects"
 
-# Target Communities
+# Target Communities (All 17 communities from KALRO repository)
 COMMUNITIES = {
-    "crops": "17bea01f-72da-4160-a98a-a57196e515f3",
-    "livestock": "9a211b88-8884-4547-90dc-9e4dd7f696f5"
+    "biotechnology": "34e30424-9190-4cdb-8be4-625de731d678",
+    "extension_materials": "63471abd-f44c-43d6-b0ff-458469392ba4",
+    "food_crops": "17bea01f-72da-4160-a98a-a57196e515f3",
+    "horticulture": "91ef0adb-1d8c-4338-9249-ff21b46bf88a",
+    "human_health": "2577d3c6-f1ed-45ac-9918-e3ff118f2527",
+    "industrial_crops": "24a583eb-15c6-49b9-8e6d-9e6d9967b272",
+    "intellectual_property_rights": "54416fab-857e-491b-92e4-528d741504d1",
+    "knowledge_management_ict": "0866e07c-7be7-4f0b-9f9d-4f57b3c1b383",
+    "livestock": "9a211b88-8884-4547-90dc-9e4dd7f696f5",
+    "livestock_crop_health": "b8e56475-9bd6-482a-be96-3ad47e74c087",
+    "mechanization_automation": "6f9d42fb-127b-46a6-a4af-31a3c7570101",
+    "natural_resources": "83df1aaa-a881-4ec0-835b-6cb06dc92928",
+    "proceedings": "7f2e21fa-8310-4e95-9155-246030fc66cb",
+    "reports": "4dddd5c5-c5a5-4fbb-bd72-2d5dc24d6cd5",
+    "repository_2025": "896eb9c0-f591-4349-bb79-87ccf587b1d0",
+    "socioeconomics": "f2349095-a810-49c0-8a11-cb3f8fc45f87",
+    "wildlife_science": "045e50f4-c936-43ba-ac27-990a9b0ba506"
 }
 
 # Base download directory (same as kalroscraper.py)

@@ -40,7 +40,7 @@ python kalro_discover.py
 
 This will:
 - Create hierarchical folder structure: `downloads/kalro_research_files/{community}/{collection}/`
-- Scan the Crops and Livestock communities
+- Scan all 17 communities from the KALRO repository
 - Discover all collections within those communities
 - Find all items in each collection
 - Extract bitstream download URLs for each item
@@ -93,7 +93,7 @@ target_urls = [
 
 **URL Discovery (kalro_discover.py):**
 1. Connects to the KALRO DSpace REST API
-2. Scans specified communities (Crops, Livestock by default)
+2. Scans all 17 communities from the KALRO repository
 3. Creates hierarchical folder structure: `downloads/kalro_research_files/{community}/{collection}/`
 4. Retrieves all collections within each community
 5. Checks if collection is already complete (skips if yes)
