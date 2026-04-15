@@ -49,6 +49,12 @@ def load_discovered_urls(filename: str = 'discovered_urls.txt') -> List[Tuple[st
                 urls = [line.strip() for line in f if line.strip()]
                 # Use the directory containing discovered_urls.txt as the download folder
                 for url in urls:
+                    # Transform old /download URLs to /content endpoints
+                    if url.endswith('/download'):
+                        url = url.replace('/download', '/content')
+                        # Also ensure it uses the API base if it doesn't already
+                        if '/server/api/core/bitstreams/' not in url:
+                            url = url.replace('/bitstreams/', '/server/api/core/bitstreams/')
                     all_urls_with_paths.append((url, root))
             print(f"[INFO] Loaded {len(urls)} URLs from {file_path}")
     
