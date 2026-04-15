@@ -120,6 +120,10 @@ def download_research_file(url, indexed_urls, folder_path=None):
     try:
         # stream=True prevents loading massive files into your computer's RAM all at once
         with requests.get(url, stream=True, timeout=30) as response:
+            # Log response details for debugging
+            print(f"[DEBUG] Response status: {response.status_code}")
+            print(f"[DEBUG] Response headers: {dict(response.headers)}")
+            
             # Raise an error if the URL is broken (e.g., 404 Not Found)
             response.raise_for_status()
             
@@ -141,6 +145,16 @@ def download_research_file(url, indexed_urls, folder_path=None):
             # Success! Now record this URL so we never download it again
             mark_url_as_downloaded(url, indexed_urls)
 
+    except requests.exceptions.HTTPError as e:
+        # Log detailed error information
+        print(f"[ERROR] HTTP Error for {url}")
+        print(f"[ERROR] Status code: {e.response.status_code}")
+        print(f"[ERROR] Response headers: {dict(e.response.headers)}")
+        try:
+            print(f"[ERROR] Response body (first 500 chars): {e.response.text[:500]}")
+        except:
+            print(f"[ERROR] Could not read response body")
+        print(f"[ERROR] Full error: {e}")
     except requests.exceptions.RequestException as e:
         print(f"[ERROR] Failed to download {url}. Error: {e}")
 
