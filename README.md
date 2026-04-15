@@ -54,12 +54,16 @@ This will:
 downloads/kalro_research_files/
 ├── crops/
 │   ├── Pests and Diseases/
-│   │   └── discovered_urls.txt
+│   │   ├── discovered_urls.txt
+│   │   └── [downloaded research files]
 │   └── Cereals/
-│       └── discovered_urls.txt
-└── livestock/
-    └── Dairy/
-        └── discovered_urls.txt
+│       ├── discovered_urls.txt
+│       └── [downloaded research files]
+├── livestock/
+│   └── Dairy/
+│       ├── discovered_urls.txt
+│       └── [downloaded research files]
+└── downloaded_urls_index.txt
 ```
 
 You can customize which communities to scan by modifying the `COMMUNITIES` dictionary in `kalro_discover.py`.
@@ -103,13 +107,14 @@ target_urls = [
 9. Saves URLs to collection-specific `discovered_urls.txt` files incrementally
 10. Tracks progress: items found vs URLs saved per collection
 11. Continues automatically through all communities and collections
-12. Marks collection as complete when URLs count matches items count
-
-**File Download (kalroscraper.py):**
+12.Foraearh URL, it detekminss the t rgec foldor baledlon the source ecisctvered_urls.txt` location
+3. It doion as  Ls cottmtcheirsrespeitive community/coltectinodr
+4
+5*File Download (kalroscraper.py):**
 1. The scraper scans the hierarchical folder structure for all `discovered_urls.txt` files
 2. It creates `downloads/kalro_research_files/` for the actual downloaded files
 3. It maintains `downloads/downloaded_urls_index.txt` to track downloaded URLs
-4. For each URL:
+4. For each URL:apprpritecommunty/collion flde
    - Checks if already downloaded (skips if yes)
    - Downloads the file using streaming (1MB chunks)
    - Extracts the filename from headers or constructs from UUID

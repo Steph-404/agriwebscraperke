@@ -2,7 +2,7 @@ import os
 import requests
 import re
 import mimetypes
-from typing import List
+from typing import List, Tuple
 
 # --- Configuration ---
 DOWNLOAD_DIR = 'downloads/kalro_research_files'
@@ -21,40 +21,47 @@ def load_indexed_urls():
         # Using a set makes looking up URLs incredibly fast (O(1) time complexity)
         return set(line.strip() for line in f if line.strip())
 
-def load_discovered_urls(filename: str = 'discovered_urls.txt') -> List[str]:
-    """Load URLs from a file or scan hierarchical folder structure."""
-    # If a specific file is provided and exists, load from it
-    if os.path.exists(filename):
+def load_discovered_urls(filename: str = 'discovered_urls.txt') -> List[Tuple[str, str]]:
+    """Load URLs with their source folder paths from hierarchical folder structure.
+    
+    Returns:
+        List of tuples (url, folder_path) where folder_path is the community/collection path.
+    """
+    # If a specific file is provided and exists, load from it (backward compatibility)
+    if os.path.exists(filename) and filename != 'discovered_urls.txt':
         with open(filename, 'r') as f:
             urls = [line.strip() for line in f if line.strip()]
-        print(f"[INFO] Loaded {len(urls)} URLs from {filename}")
-        return urls
+        print(f"[INFO] Loaded {len(urls)} URLs from {filename} (will save to base directory)")
+        # For backward compatibility, use base download dir
+        return [(url, DOWNLOAD_DIR) for url in urls]
     
     # Otherwise, scan the hierarchical folder structure for all discovered_urls.txt files
     if not os.path.exists(DOWNLOAD_DIR):
         print(f"[INFO] No download directory found at {DOWNLOAD_DIR}")
         return []
     
-    all_urls = []
+    all_urls_with_paths = []
     # Walk through the directory tree
     for root, dirs, files in os.walk(DOWNLOAD_DIR):
         if 'discovered_urls.txt' in files:
             file_path = os.path.join(root, 'discovered_urls.txt')
             with open(file_path, 'r') as f:
                 urls = [line.strip() for line in f if line.strip()]
-                all_urls.extend(urls)
+                # Use the directory containing discovered_urls.txt as the download folder
+                for url in urls:
+                    all_urls_with_paths.append((url, root))
             print(f"[INFO] Loaded {len(urls)} URLs from {file_path}")
     
     # Remove duplicates while preserving order
     seen = set()
-    unique_urls = []
-    for url in all_urls:
+    unique_urls_with_paths = []
+    for url, folder_path in all_urls_with_paths:
         if url not in seen:
             seen.add(url)
-            unique_urls.append(url)
+            unique_urls_with_paths.append((url, folder_path))
     
-    print(f"[INFO] Total unique URLs loaded from all collection folders: {len(unique_urls)}")
-    return unique_urls
+    print(f"[INFO] Total unique URLs loaded from all collection folders: {len(unique_urls_with_paths)}")
+    return unique_urls_with_paths
 
 def mark_url_as_downloaded(url, indexed_urls):
     """Add the URL to our local set and append it to the index text file."""
@@ -84,12 +91,24 @@ def get_filename_from_response(response, url):
         
     return "unknown_download.pdf"
 
-def download_research_file(url, indexed_urls):
-    """Download the file if it hasn't been downloaded yet."""
+def download_research_file(url, indexed_urls, folder_path=None):
+    """Download the file if it hasn't been downloaded yet.
+    
+    Args:
+        url: The download URL
+        indexed_urls: Set of already downloaded URLs
+        folder_path: Optional path to save the file (defaults to DOWNLOAD_DIR)
+    """
     # Check if we already have it
     if url in indexed_urls:
         print(f"[SKIPPED] Already downloaded: {url}")
         return
+
+    # Use provided folder_path or default to DOWNLOAD_DIR
+    target_folder = folder_path if folder_path else DOWNLOAD_DIR
+    
+    # Ensure the target folder exists
+    os.makedirs(target_folder, exist_ok=True)
 
     print(f"[DOWNLOADING] Starting download for: {url}")
     try:
@@ -103,7 +122,7 @@ def download_research_file(url, indexed_urls):
             
             # Remove any unsafe characters from the filename just in case
             filename = "".join(c for c in filename if c.isalnum() or c in " ._-")
-            filepath = os.path.join(DOWNLOAD_DIR, filename)
+            filepath = os.path.join(target_folder, filename)
             
             # Write the file in chunks
             with open(filepath, 'wb') as f:
@@ -134,6 +153,16 @@ if __name__ == "__main__":
         # Use URLs discovered by the discovery module
         target_urls = discovered_urls
         print(f"[INFO] Using {len(target_urls)} URLs from discovery module")
+        
+        # Check if URLs are in tuple format (url, folder_path) or just URLs
+        if target_urls and isinstance(target_urls[0], tuple):
+            # URLs with folder paths - hierarchical structure
+            for url, folder_path in target_urls:
+                download_research_file(url, indexed_urls, folder_path)
+        else:
+            # Just URLs - backward compatibility
+            for target in target_urls:
+                download_research_file(target, indexed_urls)
     else:
         # Fallback to manual list
         target_urls = [
@@ -142,9 +171,9 @@ if __name__ == "__main__":
             # "https://kalroerepository.kalro.org/bitstreams/another-uuid-here/download"
         ]
         print(f"[INFO] Using {len(target_urls)} manually specified URLs")
-    
-    # 4. Loop through and download
-    for target in target_urls:
-        download_research_file(target, indexed_urls)
+        
+        # 4. Loop through and download
+        for target in target_urls:
+            download_research_file(target, indexed_urls)
         
     print("\nBatch processing complete.")
