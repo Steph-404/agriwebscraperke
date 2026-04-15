@@ -148,6 +148,13 @@ def download_research_file(url, indexed_urls, folder_path=None):
             
             filepath = os.path.join(target_folder, filename)
             
+            # Check if file already exists on disk to prevent re-downloading
+            if os.path.exists(filepath):
+                print(f"[SKIPPED] File already exists on disk: {filepath}")
+                # Still mark as downloaded to prevent future checks
+                mark_url_as_downloaded(url, indexed_urls)
+                return
+            
             # Write the file in chunks
             with open(filepath, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=1048576):
